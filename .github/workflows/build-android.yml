@@ -1,11 +1,7 @@
 name: Build Android
 
 on:
-  push:
-    branches: [ main, master, my-custom-build ]
-  pull_request:
-    branches: [ master ]
-  workflow_dispatch:  # ручной запуск
+  workflow_dispatch:
 
 jobs:
   build:
@@ -19,14 +15,15 @@ jobs:
       # Настройка Java (нужна для Gradle)
       - uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: "temurin"
+          java-version: "17"
 
       # Flutter
-      - uses: subosito/flutter-action@v2
+      - name: Setup Flutter 3.38.3
+        uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.38'   # или stable
-          channel: 'stable'
+          flutter-version: "3.38.3" # ← Важно именно эта версия
+          channel: "stable"
           cache: true
 
       - name: Get dependencies
@@ -36,44 +33,38 @@ jobs:
           GPR_KEY: ${{ secrets.GPR_KEY }}
 
       - name: Code generation
-        run: make gen   # или dart run build_runner build --delete-conflicting-outputs
+        run: make gen
 
-      # Подпись (рекомендуется)
-      # - name: Decode Keystore
-      #   run: |
-      #     echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/trusttunnel.keystore
-
-      # === Подпись приложения ===
-      - name: Generate Keystore (если ещё нет)
+      # ==================== Подпись ====================
+      - name: Generate Keystore
         run: |
-          keytool -genkey -v -keystore android/trusttunnel.keystore -keyalg RSA -keysize 2048 -validity 10000 \
-            -alias trusttunnel -dname "CN=TrustTunnel, OU=Dev, O=TrustTunnel, L=Unknown, S=Unknown, C=RU" \
+          keytool -genkeypair -v \
+            -keystore android/trusttunnel.keystore \
+            -alias trusttunnel \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -sigalg SHA256withRSA \
+            -dname "CN=TrustTunnel, OU=Dev, O=TrustTunnel, L=, S=, C=RU" \
             -storepass ${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
             -keypass ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
 
-      - name: Create local.properties for signing
+      - name: Create local.properties
         run: |
           cat > android/local.properties << EOF
-          signingConfigKeyAlias=trusttunnel
-          signingConfigKeyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
-          signingConfigKeyStorePath=./trusttunnel.keystore
-          signingConfigKeyStorePassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          flutter.sdk=${FLUTTER_ROOT}
           flutter.versionCode=1
-          flutter.versionName=1.0.0
+          flutter.versionName=1.2.0-custom
+          signingConfigKeyAlias=trusttunnel
+          signingConfigKeyPassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          signingConfigKeyStorePath=./trusttunnel.keystore
+          signingConfigKeyStorePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           EOF
 
-      - name: Build APK (release, split)
+      - name: Build Release APKs (split by ABI)
         run: flutter build apk --release --split-per-abi
 
-      # Или AAB:
-      # - name: Build AAB
-      #   run: flutter build appbundle --release
-
-      - name: Upload artifacts
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: trusttunnel-apk
-          path: |
-            build/app/outputs/flutter-apk/*.apk
-            build/app/outputs/bundle/release/*.aab
+          name: TrustTunnel-APKs
+          path: build/app/outputs/flutter-apk/*.apk
           retention-days: 30
