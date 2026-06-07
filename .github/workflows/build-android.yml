@@ -26,11 +26,17 @@ jobs:
           channel: "stable"
           cache: true
 
-      - name: Get dependencies
+      - name: Init
         run: |
-          flutter pub get
+          make init
         env:
           GPR_KEY: ${{ secrets.GPR_KEY }}
+
+      # - name: Get dependencies
+      #   run: |
+      #     # flutter pub get
+      #   env:
+      #     GPR_KEY: ${{ secrets.GPR_KEY }}
 
       - name: Code generation
         run: make gen
