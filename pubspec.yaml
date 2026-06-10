@@ -28,6 +28,8 @@ environment:
   sdk: 3.10.1
 
 dependencies:
+  shared_preferences: 2.0.0
+  installed_apps: 0.0.6
   drift: 2.30.0
   file_picker: 10.3.10
   app_links: 7.0.0
