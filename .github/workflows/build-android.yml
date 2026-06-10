@@ -68,7 +68,7 @@ jobs:
       - name: Build Release APKs
         run: |
           echo "GPR_KEY length: ${#GPR_KEY}"
-          flutter build apk --release --split-per-abi --verbose
+          flutter build apk --release --split-per-abi
         env:
           GPR_KEY: ${{ secrets.GPR_KEY }}
 
