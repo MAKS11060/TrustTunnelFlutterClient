@@ -65,8 +65,12 @@ jobs:
           signingConfigKeyStorePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           EOF
 
-      - name: Build Release APKs (split by ABI)
-        run: flutter build apk --release --split-per-abi
+      - name: Build Release APKs
+        run: |
+          echo "GPR_KEY length: ${#GPR_KEY}"
+          flutter build apk --release --split-per-abi --verbose
+        env:
+          GPR_KEY: ${{ secrets.GPR_KEY }}
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
